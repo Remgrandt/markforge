@@ -1,0 +1,1618 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Markforge Mock UI</title>
+  <style>
+    :root{
+      --bg: #0b0d12;
+      --panel: rgba(255,255,255,0.06);
+      --panel-2: rgba(255,255,255,0.08);
+      --stroke: rgba(255,255,255,0.10);
+      --stroke-2: rgba(255,255,255,0.16);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.62);
+      --faint: rgba(255,255,255,0.42);
+      --shadow: 0 18px 60px rgba(0,0,0,0.55);
+      --r-lg: 18px;
+      --r-md: 14px;
+      --r-sm: 10px;
+      --pad: 14px;
+      --accent: #77b7ff;
+      --accent-2: #c7e3ff;
+      --warn: #ffcc66;
+      --ok: #7ef0b6;
+      --danger: #ff6b7a;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+
+    *{ box-sizing: border-box; }
+    html,body{ height: 100%; }
+    body{
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(1000px 700px at 15% 10%, rgba(119,183,255,0.22), transparent 60%),
+        radial-gradient(900px 650px at 85% 85%, rgba(126,240,182,0.14), transparent 55%),
+        radial-gradient(650px 450px at 65% 10%, rgba(255,204,102,0.12), transparent 60%),
+        linear-gradient(180deg, #0a0c11 0%, #07080c 60%, #05060a 100%);
+      overflow: hidden;
+    }
+
+    .app{
+      height: 100%;
+      display: grid;
+      grid-template-rows: 1fr;
+      grid-template-columns: 280px 1fr 360px;
+      gap: 12px;
+      padding: 14px;
+    }
+
+
+    .pill{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+      font-size: 12px;
+      user-select: none;
+    }
+    .pill b{ color: var(--text); font-weight: 600; }
+    .pill.clickable{ cursor: pointer; }
+
+    .btn{
+      appearance: none;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.2px;
+      cursor: pointer;
+      user-select: none;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      backdrop-filter: blur(10px);
+    }
+    .btn[disabled]{
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .btn.primary{
+      border-color: rgba(119,183,255,0.45);
+      background: linear-gradient(180deg, rgba(119,183,255,0.26), rgba(119,183,255,0.10));
+    }
+    .btn.ghost{
+      background: transparent;
+      border-color: var(--stroke);
+      color: var(--muted);
+      box-shadow: none;
+    }
+
+    .panel{
+      border: 1px solid var(--stroke);
+      background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04));
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+    }
+    .sidebar .section{
+      padding: 14px;
+      border-bottom: 1px solid var(--stroke);
+    }
+    .section h2{
+      margin: 0 0 8px 0;
+      font-size: 12px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .drop{
+      border: 1px dashed rgba(255,255,255,0.25);
+      border-radius: var(--r-md);
+      padding: 14px;
+      background: rgba(0,0,0,0.22);
+      transition: border-color 120ms ease, background 120ms ease;
+    }
+    .drop.dragover{
+      border-color: rgba(119,183,255,0.6);
+      background: rgba(119,183,255,0.08);
+    }
+    .drop .title{
+      font-weight: 700;
+      font-size: 13px;
+      margin: 0;
+    }
+    .drop .hint{
+      margin: 6px 0 0 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .drop-actions{
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    .drop-actions .btn{
+      flex: 1;
+      justify-content: center;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filelist{
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+    .file{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border: 1px solid var(--stroke);
+      background: rgba(0,0,0,0.18);
+      border-radius: 14px;
+      cursor: pointer;
+      min-width: 0;
+    }
+    .file.selected{
+      border-color: rgba(119,183,255,0.55);
+      box-shadow: 0 0 0 1px rgba(119,183,255,0.18);
+    }
+    .file .left{
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+    .badge{
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      border: 1px solid var(--stroke);
+      background:
+        radial-gradient(14px 12px at 35% 40%, rgba(255,255,255,0.85), rgba(255,255,255,0.00) 60%),
+        linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03));
+    }
+    .file .meta{
+      min-width: 0;
+      overflow: hidden;
+    }
+    .file .name{
+      font-size: 13px;
+      font-weight: 650;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin: 0;
+      max-width: 100%;
+    }
+    .file .details{
+      font-size: 12px;
+      color: var(--muted);
+      margin: 2px 0 0 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chip{
+      font-size: 11px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .sidebar .footer{
+      padding: 12px 14px;
+      border-top: 1px solid var(--stroke);
+      display: flex;
+      gap: 10px;
+    }
+    .sidebar .footer .btn{
+      flex: 1;
+      justify-content: center;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Preview */
+    .preview{
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 0;
+    }
+    .preview .header{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--stroke);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .preview .header .title{
+      display:flex;
+      align-items: baseline;
+      gap: 10px;
+      min-width: 0;
+    }
+    .preview .header h2{
+      margin:0;
+      font-size: 14px;
+      letter-spacing: 0.2px;
+    }
+    .preview .header .hint{
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 52ch;
+    }
+
+    .canvas{
+      position: relative;
+      padding: 14px;
+      min-height: 0;
+    }
+
+    .stage{
+      height: 100%;
+      border-radius: 20px;
+      border: 1px solid var(--stroke);
+      background:
+        radial-gradient(900px 600px at 50% 20%, rgba(255,255,255,0.08), rgba(255,255,255,0.02) 60%),
+        linear-gradient(180deg, rgba(0,0,0,0.34), rgba(0,0,0,0.18));
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.45);
+    }
+
+    /* Preview image card */
+    .mock-image{
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03)),
+        radial-gradient(240px 200px at 30% 35%, rgba(119,183,255,0.18), transparent 65%),
+        radial-gradient(260px 220px at 72% 68%, rgba(126,240,182,0.14), transparent 70%),
+        radial-gradient(700px 350px at 50% 100%, rgba(255,204,102,0.10), transparent 70%),
+        rgba(0,0,0,0.22);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.50);
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+    }
+
+    .mock-image:before{
+      /* subtle noise-ish texture */
+      content:"";
+      position:absolute;
+      inset:-40%;
+      background: repeating-linear-gradient(45deg,
+        rgba(255,255,255,0.04) 0 4px,
+        rgba(255,255,255,0.00) 4px 10px
+      );
+      transform: rotate(10deg);
+      opacity: 0.35;
+      mix-blend-mode: overlay;
+      pointer-events: none;
+    }
+
+    .preview-img{
+      position: relative;
+      display: block;
+      z-index: 1;
+    }
+    .empty-state{
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      z-index: 2;
+      background: rgba(0,0,0,0.12);
+    }
+    .mock-image.has-image .empty-state{ display: none; }
+    .mock-image.empty .preview-img{ display: none; }
+    .mock-image.empty .empty-state{ display: grid; }
+    .mock-image.empty{
+      width: min(78%, 720px);
+      aspect-ratio: 16 / 10;
+    }
+
+    .preview .footer{
+      border-top: 1px solid var(--stroke);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .zoom{
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.04);
+      padding: 8px 10px;
+      border-radius: 999px;
+    }
+    .zoom input[type="range"]{
+      width: 120px;
+      height: 4px;
+      accent-color: var(--accent);
+    }
+    .zoom .dot{
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 0 3px rgba(126,240,182,0.12);
+    }
+    .status{
+      font-family: var(--mono);
+      color: var(--accent-2);
+    }
+    .sep{ opacity: 0.5; margin: 0 6px; }
+
+    /* Inspector (right side) */
+    .inspector{
+      display: grid;
+      grid-template-rows: 1fr auto;
+      min-height: 0;
+    }
+    .inspector .header{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--stroke);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .inspector .header h2{
+      margin:0;
+      font-size: 14px;
+      letter-spacing: 0.2px;
+    }
+    .inspector .scroll{
+      padding: 14px;
+      overflow: auto;
+      min-height: 0;
+    }
+
+    .group{
+      border: 1px solid var(--stroke);
+      background: rgba(0,0,0,0.18);
+      border-radius: 18px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .group .ghead{
+      padding: 12px 12px;
+      border-bottom: 1px solid var(--stroke);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .group .ghead .label{
+      font-size: 12px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 650;
+    }
+    .group .gbody{
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    label{
+      display: grid;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    input[type="text"], input[type="number"], select{
+      width: 100%;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 14px;
+      outline: none;
+    }
+    .font-picker{
+      position: relative;
+    }
+    .font-select{
+      width: 100%;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      padding: 10px 34px 10px 12px;
+      border-radius: 14px;
+      outline: none;
+      cursor: pointer;
+      text-align: left;
+      position: relative;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: var(--sans);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .font-select:after{
+      content: "▾";
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+    .font-menu{
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      background: #0f121a;
+      border: 1px solid var(--stroke-2);
+      border-radius: 12px;
+      padding: 6px;
+      max-height: 260px;
+      overflow: auto;
+      box-shadow: var(--shadow);
+      display: none;
+      z-index: 30;
+    }
+    .font-menu.open{ display: block; }
+    .font-option{
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .font-option:hover,
+    .font-option.active{
+      background: rgba(119,183,255,0.18);
+    }
+    .font-option.muted{
+      color: var(--muted);
+      font-family: var(--sans);
+    }
+    select option,
+    select optgroup{
+      color: #0b0d12;
+      background: #f2f4f8;
+    }
+    input[type="text"].invalid{
+      border-color: rgba(255,107,122,0.7);
+      box-shadow: 0 0 0 2px rgba(255,107,122,0.12);
+    }
+    input[type="color"]{
+      width: 100%;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      padding: 4px;
+    }
+    .field-hint{
+      font-size: 11px;
+      color: var(--faint);
+    }
+    input[type="text"]::placeholder{
+      color: rgba(255,255,255,0.38);
+    }
+    input[type="file"]{ display: none; }
+
+    .row2{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .row2.full{
+      grid-template-columns: 1fr;
+    }
+
+    .row3{
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .slider{
+      display: grid;
+      gap: 8px;
+    }
+    .slider .srow{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .range-wrap{
+      position: relative;
+      height: 18px;
+    }
+    .track{
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.04);
+      position: relative;
+      overflow: hidden;
+    }
+    .fill{
+      position:absolute;
+      inset:0 auto 0 0;
+      width: 48%;
+      background: linear-gradient(90deg, rgba(119,183,255,0.55), rgba(199,227,255,0.18));
+      border-right: 1px solid rgba(255,255,255,0.15);
+    }
+    .knob{
+      position:absolute;
+      top: 50%;
+      left: 48%;
+      transform: translate(-50%,-50%);
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.16);
+      box-shadow: 0 10px 18px rgba(0,0,0,0.35);
+    }
+    .range{
+      position: absolute;
+      inset: -4px 0 0 0;
+      width: 100%;
+      height: 18px;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .toggle-row{
+      display:flex;
+      justify-content: space-between;
+      align-items:center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.04);
+      border-radius: 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .switch{
+      width: 44px;
+      height: 24px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(0,0,0,0.35);
+      position: relative;
+      flex: 0 0 auto;
+      cursor: pointer;
+    }
+    .switch:before{
+      content:"";
+      position:absolute;
+      top: 50%;
+      left: 24px;
+      transform: translate(-50%,-50%);
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.22);
+      border: 1px solid rgba(255,255,255,0.20);
+      box-shadow: 0 10px 18px rgba(0,0,0,0.35);
+      transition: left 120ms ease, background 120ms ease, border-color 120ms ease;
+    }
+    .switch.on{
+      background: rgba(119,183,255,0.20);
+      border-color: rgba(119,183,255,0.35);
+    }
+    .switch.on:before{
+      left: 33px;
+      background: rgba(119,183,255,0.55);
+      border-color: rgba(119,183,255,0.60);
+      box-shadow: 0 0 0 6px rgba(119,183,255,0.12);
+    }
+
+    .inspector .footer{
+      border-top: 1px solid var(--stroke);
+      padding: 12px 14px;
+      display:flex;
+      gap: 10px;
+      align-items:center;
+    }
+    .inspector .footer .btn{
+      flex: 1;
+      display:flex;
+      align-items:center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* tiny icons */
+    .ico{
+      width: 12px; height: 12px;
+      display:inline-block;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 8px 12px rgba(0,0,0,0.25);
+    }
+    .ico.blue{ background: rgba(119,183,255,0.35); border-color: rgba(119,183,255,0.40); }
+    .ico.green{ background: rgba(126,240,182,0.25); border-color: rgba(126,240,182,0.30); }
+    .ico.yellow{ background: rgba(255,204,102,0.25); border-color: rgba(255,204,102,0.30); }
+
+    /* scrollbars */
+    .inspector .scroll::-webkit-scrollbar{ width: 10px; }
+    .inspector .scroll::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,0.12);
+      border-radius: 999px;
+      border: 2px solid rgba(0,0,0,0.0);
+      background-clip: padding-box;
+    }
+    .inspector .scroll::-webkit-scrollbar-track{
+      background: rgba(255,255,255,0.03);
+    }
+
+    /* responsive: collapse sidebar on small widths */
+    @media (max-width: 1100px){
+      body{ overflow:auto; }
+      .app{
+        height: auto;
+        min-height: 100%;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+      }
+      .sidebar, .preview, .inspector{ min-height: 520px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="panel sidebar">
+      <div class="section">
+        <h2>Input</h2>
+        <div class="drop" id="drop-zone">
+          <p class="title">Drop images here</p>
+          <p class="hint">Or click <b>Add Files</b>. Supports PNG, JPG, WEBP.</p>
+        </div>
+        <div class="drop-actions">
+          <button class="btn" id="btn-add"><span class="ico" aria-hidden="true"></span> Add Files</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Queue</h2>
+        <div class="filelist" id="queue-list"></div>
+      </div>
+
+      <div class="section" style="border-bottom:none;"></div>
+
+      <div class="footer">
+        <button class="btn" id="btn-clear-selected"><span class="ico" aria-hidden="true"></span> Clear Selected</button>
+        <button class="btn ghost" id="btn-clear"><span class="ico" aria-hidden="true"></span> Clear All</button>
+      </div>
+    </aside>
+
+    <!-- Preview -->
+    <main class="panel preview">
+      <div class="header">
+        <div class="title">
+          <h2>Preview</h2>
+          <div class="hint" id="preview-filename">No file selected</div>
+        </div>
+        <div class="pill clickable" id="live-toggle"><span class="ico green" aria-hidden="true"></span> Live preview <b id="live-state">On</b></div>
+      </div>
+
+      <div class="canvas">
+        <div class="stage">
+          <div class="mock-image" id="preview-image-wrap" aria-label="Mock image preview">
+            <img id="preview-image" class="preview-img" alt="Preview" />
+            <div class="empty-state">Add files to preview</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="zoom">
+          <span class="dot" aria-hidden="true"></span>
+          <span>Zoom: <span id="zoom-label">100%</span></span>
+          <input id="zoom-range" type="range" min="10" max="200" step="1" value="100" />
+        </div>
+        <div>
+          Output: <span id="output-path" style="font-family:var(--mono); color: var(--accent-2);">/exports/</span>
+          <span class="sep">·</span>
+          <span class="status" id="status-text">Idle</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- Inspector -->
+    <section class="panel inspector">
+      <div class="scroll">
+        <div class="group">
+          <div class="ghead">
+            <div class="label">Text</div>
+          </div>
+          <div class="gbody">
+            <label>
+              Watermark text
+              <input id="wm-text" type="text" value="MARKFORGE" placeholder="Enter watermark text…" />
+            </label>
+
+            <div class="row2">
+              <label>
+                Font
+                <div class="font-picker" id="wm-font-picker">
+                  <button class="font-select" id="wm-font-button" type="button">System default</button>
+                  <div class="font-menu" id="wm-font-menu" role="listbox" aria-label="Font list"></div>
+                </div>
+              </label>
+              <label>
+                Size
+                <input id="wm-size" type="number" value="56" />
+              </label>
+            </div>
+
+            <div class="row2">
+              <label>
+                Color
+                <input id="wm-color" type="text" value="#77B7FF" />
+                <div class="field-hint">Hex only (#RGB or #RRGGBB). “0” → #000000</div>
+              </label>
+              <label>
+                Picker
+                <input id="wm-color-picker" type="color" value="#77B7FF" />
+              </label>
+            </div>
+
+            <div class="row2">
+              <label>
+                Blend
+                <select id="wm-blend">
+                  <option value="normal">Normal</option>
+                  <option value="multiply">Multiply</option>
+                  <option value="overlay">Overlay</option>
+                  <option value="soft_light">Soft Light</option>
+                </select>
+              </label>
+              <label>
+                (HSV/RGB)
+                <div class="field-hint">Use the picker for HSV/RGB sliders in the browser UI.</div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="ghead">
+            <div class="label">Placement</div>
+          </div>
+          <div class="gbody">
+            <div class="row3">
+              <label>
+                Angle (deg)
+                <input id="wm-angle" type="number" value="-30" />
+              </label>
+              <label>
+                Padding
+                <input id="wm-padding" type="number" value="110" />
+              </label>
+              <label>
+                Offset
+                <input id="wm-offset" type="text" value="0, 0" />
+              </label>
+            </div>
+
+            <div class="toggle-row">
+              <div>
+                <div style="font-weight:700; color: var(--text);">Tile watermark</div>
+                <div style="margin-top:2px;">Repeat across image</div>
+              </div>
+              <div class="switch on" id="toggle-tile" aria-hidden="true"></div>
+            </div>
+
+            <div class="toggle-row">
+              <div>
+                <div style="font-weight:700; color: var(--text);">Center single mark</div>
+                <div style="margin-top:2px;">Overrides tiling</div>
+              </div>
+              <div class="switch" id="toggle-center" aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="ghead">
+            <div class="label">Opacity</div>
+            <span class="chip" id="opacity-chip">18%</span>
+          </div>
+          <div class="gbody">
+            <div class="slider">
+              <div class="srow">
+                <span>Opacity</span>
+                <span style="color: var(--accent-2); font-family: var(--mono);" id="opacity-value">0.18</span>
+              </div>
+              <div class="range-wrap">
+                <div class="track" aria-hidden="true">
+                  <div class="fill" id="opacity-fill"></div>
+                  <div class="knob" id="opacity-knob"></div>
+                </div>
+                <input id="wm-opacity" class="range" type="range" min="0" max="1" step="0.01" value="0.18" />
+              </div>
+              <div class="srow" style="color: var(--faint);">
+                <span>Subtle</span>
+                <span>Bold</span>
+              </div>
+            </div>
+
+            <div class="row2 full">
+              <div class="toggle-row">
+                <div>
+                  <div style="font-weight:700; color: var(--text);">Anti-alias</div>
+                  <div style="margin-top:2px;">Smooth edges</div>
+                </div>
+                <div class="switch on" id="toggle-aa" aria-hidden="true"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="ghead">
+            <div class="label">Output</div>
+            <span class="chip" id="batch-count">0 files</span>
+          </div>
+          <div class="gbody">
+            <label>
+              Output folder
+              <div class="row2" style="align-items:center;">
+                <input id="out-dir" type="text" value="exports" style="font-family:var(--mono);" />
+                <button class="btn ghost" id="btn-pick-output" type="button">Choose…</button>
+              </div>
+              <div class="field-hint">Relative to working folder by default.</div>
+            </label>
+
+            <div class="row2">
+              <label>
+                Naming
+                <select id="out-naming">
+                  <option value="append_wm">append _wm</option>
+                  <option value="append_markforge">append _MARKFORGE</option>
+                  <option value="overwrite">overwrite</option>
+                </select>
+              </label>
+              <label>
+                Format
+                <select id="out-format">
+                  <option value="auto">Auto</option>
+                  <option value="png">PNG</option>
+                  <option value="jpg">JPG</option>
+                  <option value="webp">WEBP</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <button class="btn primary" id="btn-forge"><span class="ico blue" aria-hidden="true"></span> Apply Watermark</button>
+      </div>
+    </section>
+  </div>
+
+  <input id="file-input" type="file" multiple accept="image/*" />
+  <input id="font-input" type="file" accept=".ttf,.otf" />
+
+  <script>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+
+      const el = {
+        fileInput: $("file-input"),
+        fontInput: $("font-input"),
+        dropZone: $("drop-zone"),
+        addBtn: $("btn-add"),
+        clearBtn: $("btn-clear"),
+        clearSelectedBtn: $("btn-clear-selected"),
+        queueList: $("queue-list"),
+        previewWrap: $("preview-image-wrap"),
+        previewImage: $("preview-image"),
+        previewName: $("preview-filename"),
+        liveToggle: $("live-toggle"),
+        liveState: $("live-state"),
+        outputPath: $("output-path"),
+        statusText: $("status-text"),
+        zoomLabel: $("zoom-label"),
+        zoomRange: $("zoom-range"),
+        batchCount: $("batch-count"),
+        wmText: $("wm-text"),
+        fontPicker: $("wm-font-picker"),
+        fontButton: $("wm-font-button"),
+        fontMenu: $("wm-font-menu"),
+        wmSize: $("wm-size"),
+        wmColor: $("wm-color"),
+        wmColorPicker: $("wm-color-picker"),
+        wmBlend: $("wm-blend"),
+        wmAngle: $("wm-angle"),
+        wmPadding: $("wm-padding"),
+        wmOffset: $("wm-offset"),
+        wmOpacity: $("wm-opacity"),
+        opacityValue: $("opacity-value"),
+        opacityChip: $("opacity-chip"),
+        opacityFill: $("opacity-fill"),
+        opacityKnob: $("opacity-knob"),
+        toggleTile: $("toggle-tile"),
+        toggleCenter: $("toggle-center"),
+        toggleAa: $("toggle-aa"),
+        outDir: $("out-dir"),
+        outNaming: $("out-naming"),
+        outFormat: $("out-format"),
+        btnPickOutput: $("btn-pick-output"),
+        btnForge: $("btn-forge")
+      };
+
+      const state = {
+        files: [],
+        selectedId: null,
+        livePreview: true,
+        fontId: null,
+        fontPath: null,
+        fitScale: 1,
+        zoom: 1,
+        imgWidth: 0,
+        imgHeight: 0
+      };
+      const fontState = {
+        selectedValue: "default",
+        selectedLabel: "System default",
+        selectedCss: null
+      };
+
+      const api = async (path, options = {}) => {
+        const opts = { method: "POST", ...options };
+        if (opts.body && !(opts.body instanceof FormData)) {
+          opts.headers = { ...(opts.headers || {}), "Content-Type": "application/json" };
+          opts.body = JSON.stringify(opts.body);
+        }
+        const res = await fetch(path, opts);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) {
+          throw new Error(data.error || res.statusText || "Request failed");
+        }
+        return data;
+      };
+
+      const setStatus = (text) => {
+        el.statusText.textContent = text;
+      };
+
+      const formatBytes = (bytes) => {
+        if (!bytes && bytes !== 0) return "-";
+        const units = ["B", "KB", "MB", "GB"];
+        let size = bytes;
+        let unit = 0;
+        while (size >= 1024 && unit < units.length - 1) {
+          size /= 1024;
+          unit += 1;
+        }
+        return `${size.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+      };
+
+      const toggleSwitch = (elSwitch, on) => {
+        elSwitch.classList.toggle("on", on);
+      };
+
+      const isOn = (elSwitch) => elSwitch.classList.contains("on");
+
+      const debounce = (fn, delay = 250) => {
+        let timer;
+        return (...args) => {
+          clearTimeout(timer);
+          timer = setTimeout(() => fn(...args), delay);
+        };
+      };
+
+      const syncOpacity = (value) => {
+        const v = Math.max(0, Math.min(1, parseFloat(value) || 0));
+        el.wmOpacity.value = v.toFixed(2);
+        el.opacityValue.textContent = v.toFixed(2);
+        el.opacityChip.textContent = `${Math.round(v * 100)}%`;
+        const pct = v * 100;
+        el.opacityFill.style.width = `${pct}%`;
+        el.opacityKnob.style.left = `${pct}%`;
+      };
+
+      const parseOffset = (value) => {
+        const parts = value.split(/[, ]+/).map((p) => p.trim()).filter(Boolean);
+        const x = parseInt(parts[0] || "0", 10) || 0;
+        const y = parseInt(parts[1] || "0", 10) || 0;
+        return { x, y };
+      };
+
+      const normalizeColor = (value) => {
+        if (!value && value !== 0) return null;
+        const raw = String(value).trim().toLowerCase();
+        if (!raw) return null;
+        if (raw === "0") return "#000000";
+        let hex = raw;
+        if (hex.startsWith("0x")) hex = hex.slice(2);
+        if (hex.startsWith("#")) hex = hex.slice(1);
+        if (/^[0-9a-f]{3}$/i.test(hex)) {
+          return `#${hex.split("").map((c) => c + c).join("")}`.toUpperCase();
+        }
+        if (/^[0-9a-f]{6}$/i.test(hex)) {
+          return `#${hex}`.toUpperCase();
+        }
+        return null;
+      };
+
+      const gatherSettings = () => {
+        const { x, y } = parseOffset(el.wmOffset.value);
+        const normalized = normalizeColor(el.wmColor.value) || "#77B7FF";
+        return {
+          text: el.wmText.value.trim() || "MARKFORGE",
+          font_size: parseInt(el.wmSize.value, 10) || 56,
+          fill: normalized,
+          blend: el.wmBlend.value,
+          angle: parseFloat(el.wmAngle.value) || -30,
+          padding: parseInt(el.wmPadding.value, 10) || 0,
+          opacity: parseFloat(el.wmOpacity.value) || 0.18,
+          tile: isOn(el.toggleTile),
+          center: isOn(el.toggleCenter),
+          antialias: isOn(el.toggleAa),
+          offset_x: x,
+          offset_y: y,
+          font_id: state.fontId,
+          font_path: state.fontPath
+        };
+      };
+
+      const updateClearButtons = (hasFiles, hasSelection) => {
+        el.clearBtn.disabled = !hasFiles;
+        el.clearSelectedBtn.disabled = !hasSelection;
+        el.clearBtn.classList.toggle("ghost", !hasFiles);
+        el.clearSelectedBtn.classList.toggle("ghost", !hasSelection);
+      };
+
+      const renderQueue = (files, selectedId) => {
+        el.queueList.innerHTML = "";
+        state.files = files;
+        state.selectedId = selectedId || (files[0] && files[0].id) || null;
+        el.batchCount.textContent = `${files.length} file${files.length === 1 ? "" : "s"}`;
+
+        if (!files.length) {
+          const empty = document.createElement("div");
+          empty.className = "chip";
+          empty.textContent = "No files yet";
+          el.queueList.appendChild(empty);
+          el.previewName.textContent = "No file selected";
+          el.previewWrap.classList.remove("has-image");
+          el.previewWrap.classList.add("empty");
+          el.previewImage.removeAttribute("src");
+          el.previewWrap.style.width = "";
+          el.previewWrap.style.height = "";
+          el.zoomLabel.textContent = "100%";
+          updateClearButtons(false, false);
+          return;
+        }
+
+        files.forEach((file) => {
+          const row = document.createElement("div");
+          row.className = "file";
+          if (file.id === state.selectedId) row.classList.add("selected");
+          row.innerHTML = `
+            <div class="left">
+              <div class="badge" aria-hidden="true"></div>
+              <div class="meta">
+                <p class="name">${file.name}</p>
+                <p class="details">${file.width}×${file.height} · ${formatBytes(file.size)}</p>
+              </div>
+            </div>
+            <span class="chip">${file.id === state.selectedId ? "Selected" : "Queued"}</span>
+          `;
+          row.addEventListener("click", () => selectFile(file.id));
+          el.queueList.appendChild(row);
+        });
+
+        const selected = files.find((f) => f.id === state.selectedId) || files[0];
+        if (selected) {
+          el.previewName.textContent = selected.name;
+          state.imgWidth = selected.width || 0;
+          state.imgHeight = selected.height || 0;
+        }
+        updateClearButtons(true, Boolean(state.selectedId));
+      };
+
+      const refreshQueue = async () => {
+        const data = await api("/api/queue");
+        renderQueue(data.files || [], data.selected_id);
+        if (state.selectedId) {
+          if (state.livePreview) {
+            schedulePreview();
+          } else {
+            showOriginal();
+          }
+        }
+      };
+
+      const selectFile = async (id) => {
+        await api("/api/select", { body: { id } });
+        state.selectedId = id;
+        renderQueue(state.files, id);
+        if (state.livePreview) {
+          schedulePreview();
+        } else {
+          showOriginal();
+        }
+      };
+
+      const setPreviewImage = (url) => {
+        el.previewWrap.classList.add("has-image");
+        el.previewWrap.classList.remove("empty");
+        el.previewImage.src = url;
+      };
+
+      const showOriginal = () => {
+        if (!state.selectedId) return;
+        setPreviewImage(`/source/${state.selectedId}?t=${Date.now()}`);
+      };
+
+      const requestPreview = async () => {
+        if (!state.selectedId) return;
+        setStatus("Rendering preview…");
+        const data = await api("/api/preview", {
+          body: {
+            id: state.selectedId,
+            settings: gatherSettings()
+          }
+        });
+        if (data.preview_url) {
+          setPreviewImage(`${data.preview_url}?t=${Date.now()}`);
+          setStatus("Preview updated");
+        }
+      };
+
+      const computeFitScale = () => {
+        const imgW = el.previewImage.naturalWidth || state.imgWidth;
+        const imgH = el.previewImage.naturalHeight || state.imgHeight;
+        if (!imgW || !imgH) return 1;
+        const stage = el.previewWrap.parentElement;
+        if (!stage) return 1;
+        const maxW = stage.clientWidth;
+        const maxH = stage.clientHeight;
+        const scale = Math.min(maxW / imgW, maxH / imgH, 1);
+        return scale || 1;
+      };
+
+      const applyZoom = () => {
+        const imgW = el.previewImage.naturalWidth || state.imgWidth;
+        const imgH = el.previewImage.naturalHeight || state.imgHeight;
+        if (!imgW || !imgH) return;
+        state.fitScale = computeFitScale();
+        const scale = state.fitScale * state.zoom;
+        const width = Math.max(1, Math.round(imgW * scale));
+        const height = Math.max(1, Math.round(imgH * scale));
+        el.previewImage.style.width = `${width}px`;
+        el.previewImage.style.height = `${height}px`;
+        el.previewWrap.style.width = `${width}px`;
+        el.previewWrap.style.height = `${height}px`;
+        const pct = Math.round(scale * 100);
+        el.zoomLabel.textContent = `${pct}%`;
+        el.zoomRange.value = String(Math.round(state.zoom * 100));
+      };
+
+      const schedulePreview = debounce(() => {
+        requestPreview().catch((err) => setStatus(`Error: ${err.message}`));
+      }, 200);
+
+      const forgeOutput = async () => {
+        if (!state.selectedId && !state.files.length) {
+          setStatus("Add files to forge");
+          return;
+        }
+        setStatus("Forging output…");
+        const data = await api("/api/forge", {
+          body: {
+            apply_all: true,
+            naming: el.outNaming.value,
+            format: el.outFormat.value,
+            keep_originals: true,
+            output_dir: el.outDir.value.trim(),
+            settings: gatherSettings()
+          }
+        });
+        if (data.output_dir) {
+          el.outputPath.textContent = data.output_dir;
+        }
+        setStatus(`Forged ${data.outputs.length} file${data.outputs.length === 1 ? "" : "s"}`);
+      };
+
+      const pickFiles = async () => {
+        setStatus("Selecting files…");
+        const data = await api("/api/pick-files");
+        if (data.added === 0) {
+          setStatus("No files selected");
+          return;
+        }
+        setStatus(`Added ${data.added} file${data.added === 1 ? "" : "s"}`);
+        renderQueue(data.files || [], data.selected_id);
+        if (state.livePreview) {
+          schedulePreview();
+        } else {
+          showOriginal();
+        }
+      };
+
+      const uploadFiles = async (files) => {
+        const list = Array.from(files || []).filter(Boolean);
+        if (!list.length) {
+          setStatus("No files dropped");
+          return;
+        }
+        const priorCount = state.files.length;
+        setStatus(`Uploading ${list.length} file${list.length === 1 ? "" : "s"}…`);
+        const form = new FormData();
+        list.forEach((file) => form.append("files", file, file.name));
+        const data = await api("/api/upload", { body: form });
+        renderQueue(data.files || [], data.selected_id);
+        const nextCount = (data.files || []).length;
+        const added = Math.max(0, nextCount - priorCount);
+        if (added === 0) {
+          setStatus("No valid images added");
+        } else {
+          setStatus(`Added ${added} file${added === 1 ? "" : "s"}`);
+        }
+        if (state.livePreview) {
+          schedulePreview();
+        } else {
+          showOriginal();
+        }
+      };
+
+      const setFontMenuOpen = (open) => {
+        el.fontMenu.classList.toggle("open", open);
+        el.fontButton.setAttribute("aria-expanded", open ? "true" : "false");
+      };
+
+      const applyFontSelection = (value, label, cssFamily) => {
+        fontState.selectedValue = value;
+        fontState.selectedLabel = label;
+        fontState.selectedCss = cssFamily || null;
+        el.fontButton.textContent = label;
+        el.fontButton.style.fontFamily = cssFamily ? `"${cssFamily}", var(--sans)` : "var(--sans)";
+        [...el.fontMenu.querySelectorAll(".font-option")].forEach((opt) => {
+          opt.classList.toggle("active", opt.dataset.value === value);
+        });
+      };
+
+      const chooseFont = (value, label, cssFamily) => {
+        if (value === "custom") {
+          setFontMenuOpen(false);
+          pickFont().catch((err) => setStatus(`Error: ${err.message}`));
+          return;
+        }
+        state.fontId = null;
+        state.fontPath = value === "default" ? null : value;
+        applyFontSelection(value, label, cssFamily);
+        setFontMenuOpen(false);
+        if (state.livePreview) {
+          schedulePreview();
+        }
+      };
+
+      const pickFont = async () => {
+        const data = await api("/api/pick-font");
+        state.fontId = data.font_id;
+        state.fontPath = null;
+        const label = `Custom: ${data.name}`;
+        const customOption = el.fontMenu.querySelector('[data-value="custom"]');
+        if (customOption) {
+          customOption.textContent = label;
+        }
+        applyFontSelection("custom", label, null);
+        if (state.livePreview) {
+          schedulePreview();
+        }
+      };
+
+      const loadFonts = async () => {
+        try {
+          const data = await api("/api/fonts");
+          const fonts = data.fonts || [];
+          const defaultFont = data.default_font || null;
+          const defaultValue = defaultFont?.path || "default";
+          const defaultLabel = defaultFont?.name
+            ? `System default (${defaultFont.name})`
+            : "System default";
+          const defaultCss = defaultFont?.css_family || null;
+          const currentValue = fontState.selectedValue || defaultValue;
+          const currentLabel = fontState.selectedLabel || defaultLabel;
+          const currentCss = fontState.selectedCss || null;
+          const customLabel = currentValue === "custom" ? currentLabel : "Custom…";
+          let styleEl = document.getElementById("font-face-style");
+          if (!styleEl) {
+            styleEl = document.createElement("style");
+            styleEl.id = "font-face-style";
+            document.head.appendChild(styleEl);
+          }
+
+          const fontCss = fonts
+            .filter((font) => font?.id && font?.css_family)
+            .map((font) => {
+              const ext = String(font.path || "").split(".").pop().toLowerCase();
+              const format =
+                ext === "otf" || ext === "otc"
+                  ? "opentype"
+                  : ext === "ttf" || ext === "ttc"
+                  ? "truetype"
+                  : "";
+              const formatPart = format ? ` format("${format}")` : "";
+              return `@font-face{font-family:"${font.css_family}";src:url("/font/${font.id}")${formatPart};font-display:swap;}`;
+            })
+            .join("\n");
+          styleEl.textContent = fontCss;
+          el.fontMenu.innerHTML = "";
+
+          const makeOption = (value, label, cssFamily, muted = false) => {
+            const option = document.createElement("button");
+            option.type = "button";
+            option.className = "font-option";
+            if (muted) option.classList.add("muted");
+            option.dataset.value = value;
+            option.textContent = label;
+            if (cssFamily) {
+              option.dataset.cssFamily = cssFamily;
+              option.style.fontFamily = `"${cssFamily}", var(--sans)`;
+            }
+            option.addEventListener("click", () => {
+              chooseFont(value, label, cssFamily);
+            });
+            el.fontMenu.appendChild(option);
+          };
+
+          makeOption(defaultValue, defaultLabel, defaultCss);
+
+          fonts.forEach((font) => {
+            if (!font?.path || !font?.name) return;
+            makeOption(font.path, font.name, font.css_family);
+          });
+
+          makeOption("custom", customLabel, null, true);
+
+          const options = [...el.fontMenu.querySelectorAll(".font-option")];
+          const resolvedValue = currentValue === "default" ? defaultValue : currentValue;
+          const active =
+            options.find((opt) => opt.dataset.value === resolvedValue) ||
+            options.find((opt) => opt.dataset.value === defaultValue);
+          if (active) {
+            const cssFamily = active.dataset.cssFamily || currentCss;
+            applyFontSelection(active.dataset.value, active.textContent, cssFamily);
+            if (active.dataset.value !== "custom") {
+              state.fontId = null;
+              state.fontPath = active.dataset.value === "default" ? null : active.dataset.value;
+            }
+          }
+        } catch (err) {
+          setStatus(`Error: ${err.message}`);
+        }
+      };
+
+      const pickOutput = async () => {
+        const data = await api("/api/pick-output");
+        if (data.path) {
+          el.outDir.value = data.path;
+          el.outputPath.textContent = data.path;
+        }
+      };
+
+      el.addBtn.addEventListener("click", () => {
+        el.fileInput.click();
+      });
+      el.clearBtn.addEventListener("click", async () => {
+        await api("/api/clear");
+        await refreshQueue();
+        setStatus("Cleared queue");
+      });
+      el.clearSelectedBtn.addEventListener("click", async () => {
+        try {
+          await api("/api/clear-selected");
+          await refreshQueue();
+          setStatus("Cleared selected file");
+        } catch (err) {
+          setStatus(`Error: ${err.message}`);
+        }
+      });
+
+      el.dropZone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = "copy";
+        }
+        el.dropZone.classList.add("dragover");
+      });
+      el.dropZone.addEventListener("dragleave", () => el.dropZone.classList.remove("dragover"));
+      el.dropZone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        el.dropZone.classList.remove("dragover");
+        uploadFiles(event.dataTransfer ? event.dataTransfer.files : []).catch((err) => {
+          setStatus(`Error: ${err.message}`);
+        });
+      });
+      el.dropZone.addEventListener("click", () => {
+        el.fileInput.click();
+      });
+      el.fileInput.addEventListener("change", (event) => {
+        const target = event.target;
+        uploadFiles(target.files || []).catch((err) => setStatus(`Error: ${err.message}`));
+        target.value = "";
+      });
+
+      el.btnForge.addEventListener("click", () => forgeOutput().catch((err) => setStatus(`Error: ${err.message}`)));
+      el.liveToggle.addEventListener("click", () => {
+        state.livePreview = !state.livePreview;
+        el.liveState.textContent = state.livePreview ? "On" : "Off";
+        if (state.livePreview) {
+          schedulePreview();
+        } else {
+          showOriginal();
+        }
+      });
+
+      el.fontButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        setFontMenuOpen(!el.fontMenu.classList.contains("open"));
+      });
+      document.addEventListener("click", (event) => {
+        if (!el.fontPicker.contains(event.target)) {
+          setFontMenuOpen(false);
+        }
+      });
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          setFontMenuOpen(false);
+        }
+      });
+
+      const bindInput = (element) => element.addEventListener("input", () => {
+        if (state.livePreview) schedulePreview();
+      });
+
+      [el.wmText, el.wmSize, el.wmBlend, el.wmAngle, el.wmPadding, el.wmOffset].forEach(bindInput);
+
+      const syncColorInputs = (value) => {
+        const normalized = normalizeColor(value);
+        if (normalized) {
+          el.wmColor.value = normalized;
+          el.wmColor.classList.remove("invalid");
+          el.wmColorPicker.value = normalized;
+          if (state.livePreview) schedulePreview();
+        } else {
+          el.wmColor.classList.add("invalid");
+        }
+      };
+
+      el.wmColor.addEventListener("input", () => {
+        const normalized = normalizeColor(el.wmColor.value);
+        if (normalized) {
+          el.wmColor.classList.remove("invalid");
+          el.wmColorPicker.value = normalized;
+          if (state.livePreview) schedulePreview();
+        } else {
+          el.wmColor.classList.add("invalid");
+        }
+      });
+      el.wmColor.addEventListener("blur", () => {
+        const normalized = normalizeColor(el.wmColor.value);
+        if (normalized) {
+          syncColorInputs(normalized);
+        }
+      });
+      el.wmColorPicker.addEventListener("input", () => {
+        syncColorInputs(el.wmColorPicker.value);
+      });
+
+      el.wmOpacity.addEventListener("input", () => {
+        syncOpacity(el.wmOpacity.value);
+        if (state.livePreview) schedulePreview();
+      });
+
+      el.toggleTile.addEventListener("click", () => {
+        const next = !isOn(el.toggleTile);
+        toggleSwitch(el.toggleTile, next);
+        if (next) toggleSwitch(el.toggleCenter, false);
+        if (state.livePreview) schedulePreview();
+      });
+      el.toggleCenter.addEventListener("click", () => {
+        const next = !isOn(el.toggleCenter);
+        toggleSwitch(el.toggleCenter, next);
+        if (next) toggleSwitch(el.toggleTile, false);
+        if (state.livePreview) schedulePreview();
+      });
+      el.toggleAa.addEventListener("click", () => {
+        toggleSwitch(el.toggleAa, !isOn(el.toggleAa));
+        if (state.livePreview) schedulePreview();
+      });
+
+      el.outDir.addEventListener("input", () => {
+        const value = el.outDir.value.trim();
+        el.outputPath.textContent = value ? value : "exports";
+      });
+      el.outDir.addEventListener("dblclick", () => pickOutput().catch((err) => setStatus(`Error: ${err.message}`)));
+      el.btnPickOutput.addEventListener("click", () => pickOutput().catch((err) => setStatus(`Error: ${err.message}`)));
+
+      syncOpacity(el.wmOpacity.value);
+      loadFonts().catch((err) => setStatus(`Error: ${err.message}`));
+      refreshQueue().catch((err) => setStatus(`Error: ${err.message}`));
+
+      el.previewImage.addEventListener("load", () => {
+        if (el.previewImage.naturalWidth && el.previewImage.naturalHeight) {
+          state.imgWidth = el.previewImage.naturalWidth;
+          state.imgHeight = el.previewImage.naturalHeight;
+        }
+        state.zoom = 1;
+        el.zoomRange.value = "100";
+        applyZoom();
+      });
+      el.zoomRange.addEventListener("input", () => {
+        state.zoom = Math.max(0.1, Math.min(2, parseInt(el.zoomRange.value, 10) / 100));
+        applyZoom();
+      });
+      window.addEventListener("resize", () => {
+        applyZoom();
+      });
+    })();
+  </script>
+</body>
+</html>
