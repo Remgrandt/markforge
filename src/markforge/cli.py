@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 
@@ -13,24 +12,73 @@ app = typer.Typer(
     help="markforge: stamp images with text watermarks (CLI-first, GUI-ready).",
 )
 
+INPUT_PATH_ARGUMENT = typer.Argument(
+    ...,
+    exists=True,
+    readable=True,
+    dir_okay=False,
+    help="Input image file.",
+)
+OUTPUT_PATH_ARGUMENT = typer.Argument(
+    ...,
+    writable=True,
+    dir_okay=False,
+    help="Output image file.",
+)
+TEXT_OPTION = typer.Option("markforge", "--text", "-t", help="Watermark text.")
+OPACITY_OPTION = typer.Option(0.15, min=0.0, max=1.0, help="Text opacity (0..1).")
+ANGLE_OPTION = typer.Option(-30.0, "--angle", help="Rotation angle in degrees.")
+FILL_OPTION = typer.Option("#0A3D91", "--fill", help="Text color (e.g. '#ffffff', 'white').")
+FONT_PATH_OPTION = typer.Option(
+    None,
+    "--font",
+    exists=True,
+    dir_okay=False,
+    help="Path to .ttf/.otf font.",
+)
+FONT_SIZE_OPTION = typer.Option(
+    64,
+    "--font-size",
+    min=8,
+    max=4096,
+    help="Font size (ignored if --scale is set).",
+)
+SCALE_OPTION = typer.Option(
+    None,
+    "--scale",
+    min=0.01,
+    max=2.0,
+    help="Auto font sizing as fraction of min(image_dim).",
+)
+TILE_OPTION = typer.Option(True, "--tile/--no-tile", help="Tile the watermark across the image.")
+PADDING_OPTION = typer.Option(100, "--padding", min=0, max=10000, help="Padding between tiles (px).")
+CENTER_OPTION = typer.Option(False, "--center", help="Center a single watermark (use with --no-tile).")
+OFFSET_OPTION = typer.Option("0,0", "--offset", help="Offset in pixels as 'x,y'.")
+BLEND_OPTION = typer.Option("normal", "--blend", help="Blend mode: normal, multiply, overlay, soft_light.")
+ANTIALIAS_OPTION = typer.Option(True, "--antialias/--no-antialias", help="Smooth rotated text.")
+GUI_HOST_OPTION = typer.Option("127.0.0.1", help="Bind host for the GUI server.")
+GUI_PORT_OPTION = typer.Option(0, help="Bind port (0 picks a free port).")
+GUI_OPEN_BROWSER_OPTION = typer.Option(True, "--open/--no-open", help="Open a browser tab.")
+GUI_HTML_OPTION = typer.Option(None, "--html", help="Path to a custom HTML file.")
+
 
 @app.command("watermark")
 def watermark_cmd(
-    input_path: Path = typer.Argument(..., exists=True, readable=True, dir_okay=False, help="Input image file."),
-    output_path: Path = typer.Argument(..., writable=True, dir_okay=False, help="Output image file."),
-    text: str = typer.Option("markforge", "--text", "-t", help="Watermark text."),
-    opacity: float = typer.Option(0.15, min=0.0, max=1.0, help="Text opacity (0..1)."),
-    angle: float = typer.Option(-30.0, "--angle", help="Rotation angle in degrees."),
-    fill: str = typer.Option("#0A3D91", "--fill", help="Text color (e.g. '#ffffff', 'white')."),
-    font_path: Optional[Path] = typer.Option(None, "--font", exists=True, dir_okay=False, help="Path to .ttf/.otf font."),
-    font_size: int = typer.Option(64, "--font-size", min=8, max=4096, help="Font size (ignored if --scale is set)."),
-    scale: Optional[float] = typer.Option(None, "--scale", min=0.01, max=2.0, help="Auto font sizing as fraction of min(image_dim)."),
-    tile: bool = typer.Option(True, "--tile/--no-tile", help="Tile the watermark across the image."),
-    padding: int = typer.Option(100, "--padding", min=0, max=10000, help="Padding between tiles (px)."),
-    center: bool = typer.Option(False, "--center", help="Center a single watermark (use with --no-tile)."),
-    offset: str = typer.Option("0,0", "--offset", help="Offset in pixels as 'x,y'."),
-    blend: str = typer.Option("normal", "--blend", help="Blend mode: normal, multiply, overlay, soft_light."),
-    antialias: bool = typer.Option(True, "--antialias/--no-antialias", help="Smooth rotated text."),
+    input_path: Path = INPUT_PATH_ARGUMENT,
+    output_path: Path = OUTPUT_PATH_ARGUMENT,
+    text: str = TEXT_OPTION,
+    opacity: float = OPACITY_OPTION,
+    angle: float = ANGLE_OPTION,
+    fill: str = FILL_OPTION,
+    font_path: Path | None = FONT_PATH_OPTION,
+    font_size: int = FONT_SIZE_OPTION,
+    scale: float | None = SCALE_OPTION,
+    tile: bool = TILE_OPTION,
+    padding: int = PADDING_OPTION,
+    center: bool = CENTER_OPTION,
+    offset: str = OFFSET_OPTION,
+    blend: str = BLEND_OPTION,
+    antialias: bool = ANTIALIAS_OPTION,
 ) -> None:
     """Apply a text watermark to an image."""
     offset_parts = [p for p in offset.replace(" ", ",").split(",") if p]
@@ -72,10 +120,10 @@ def version_cmd() -> None:
 
 @app.command("gui")
 def gui_cmd(
-    host: str = typer.Option("127.0.0.1", help="Bind host for the GUI server."),
-    port: int = typer.Option(0, help="Bind port (0 picks a free port)."),
-    open_browser: bool = typer.Option(True, "--open/--no-open", help="Open a browser tab."),
-    html: Optional[Path] = typer.Option(None, "--html", help="Path to a custom HTML file."),
+    host: str = GUI_HOST_OPTION,
+    port: int = GUI_PORT_OPTION,
+    open_browser: bool = GUI_OPEN_BROWSER_OPTION,
+    html: Path | None = GUI_HTML_OPTION,
 ) -> None:
     """Launch the GUI server."""
     from . import gui

@@ -3,6 +3,7 @@ from __future__ import annotations
 from PIL import Image
 
 from markforge.core import WatermarkSpec, apply_text_watermark
+
 from .utils import count_changed_pixels
 
 

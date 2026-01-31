@@ -4,7 +4,8 @@ import pytest
 from PIL import Image
 
 from markforge.core import WatermarkSpec, apply_text_watermark
-from .utils import asset_path, assert_images_fuzzy_equal
+
+from .utils import assert_images_fuzzy_equal, asset_path
 
 
 @pytest.mark.parametrize(

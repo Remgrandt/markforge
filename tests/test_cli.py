@@ -6,8 +6,8 @@ from PIL import Image
 from typer.testing import CliRunner
 
 from markforge.cli import app
-from .utils import asset_path
 
+from .utils import asset_path
 
 runner = CliRunner()
 

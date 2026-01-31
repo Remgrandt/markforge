@@ -1,25 +1,30 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import hashlib
 import io
 import json
 import mimetypes
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
-from typing import Any
-from urllib.parse import unquote, urlparse
 import uuid
 import webbrowser
+from dataclasses import dataclass, field
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from typing import Any
+from urllib.parse import unquote, urlparse
 
 import typer
 from PIL import Image, ImageFont
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
+
+RUN_HOST_OPTION = typer.Option("127.0.0.1", help="Bind host for the GUI server.")
+RUN_PORT_OPTION = typer.Option(0, help="Bind port (0 picks a free port).")
+RUN_OPEN_BROWSER_OPTION = typer.Option(True, "--open/--no-open", help="Open a browser tab.")
+RUN_HTML_OPTION = typer.Option(None, "--html", help="Path to a custom HTML file.")
 
 _FALLBACK_HTML = """<!doctype html>
 <html lang="en">
@@ -807,10 +812,10 @@ def _make_handler(state: GuiState):
 
 @app.command()
 def run(
-    host: str = typer.Option("127.0.0.1", help="Bind host for the GUI server."),
-    port: int = typer.Option(0, help="Bind port (0 picks a free port)."),
-    open_browser: bool = typer.Option(True, "--open/--no-open", help="Open a browser tab."),
-    html: Path | None = typer.Option(None, "--html", help="Path to a custom HTML file."),
+    host: str = RUN_HOST_OPTION,
+    port: int = RUN_PORT_OPTION,
+    open_browser: bool = RUN_OPEN_BROWSER_OPTION,
+    html: Path | None = RUN_HTML_OPTION,
 ) -> None:
     """Launch the GUI by serving the static UI and API endpoints."""
     temp_dir = Path(tempfile.mkdtemp(prefix="markforge_gui_"))

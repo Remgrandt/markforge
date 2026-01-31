@@ -54,16 +54,14 @@ def _post_multipart(
     boundary = "----markforgeboundary"
     parts: list[bytes] = []
     for name, filename, content, content_type in files:
-        parts.append(f"--{boundary}\r\n".encode("utf-8"))
+        parts.append(f"--{boundary}\r\n".encode())
         parts.append(
-            f'Content-Disposition: form-data; name="{name}"; filename="{filename}"\r\n'.encode(
-                "utf-8"
-            )
+            f'Content-Disposition: form-data; name="{name}"; filename="{filename}"\r\n'.encode()
         )
-        parts.append(f"Content-Type: {content_type}\r\n\r\n".encode("utf-8"))
+        parts.append(f"Content-Type: {content_type}\r\n\r\n".encode())
         parts.append(content)
         parts.append(b"\r\n")
-    parts.append(f"--{boundary}--\r\n".encode("utf-8"))
+    parts.append(f"--{boundary}--\r\n".encode())
     body = b"".join(parts)
     req = urllib.request.Request(
         url,
