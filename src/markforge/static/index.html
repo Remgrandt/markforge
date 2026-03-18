@@ -953,15 +953,15 @@
   </div>
 
   <input id="file-input" type="file" multiple accept="image/*" />
-  <input id="font-input" type="file" accept=".ttf,.otf" />
 
+  <script src="/static/ui_helpers.js"></script>
   <script>
     (() => {
+      const helpers = window.MarkforgeUiHelpers;
       const $ = (id) => document.getElementById(id);
 
       const el = {
         fileInput: $("file-input"),
-        fontInput: $("font-input"),
         dropZone: $("drop-zone"),
         addBtn: $("btn-add"),
         clearBtn: $("btn-clear"),
@@ -1008,7 +1008,6 @@
         selectedId: null,
         livePreview: true,
         fontId: null,
-        fontPath: null,
         fitScale: 1,
         zoom: 1,
         imgWidth: 0,
@@ -1074,49 +1073,30 @@
         el.opacityKnob.style.left = `${pct}%`;
       };
 
-      const parseOffset = (value) => {
-        const parts = value.split(/[, ]+/).map((p) => p.trim()).filter(Boolean);
-        const x = parseInt(parts[0] || "0", 10) || 0;
-        const y = parseInt(parts[1] || "0", 10) || 0;
-        return { x, y };
-      };
-
-      const normalizeColor = (value) => {
-        if (!value && value !== 0) return null;
-        const raw = String(value).trim().toLowerCase();
-        if (!raw) return null;
-        if (raw === "0") return "#000000";
-        let hex = raw;
-        if (hex.startsWith("0x")) hex = hex.slice(2);
-        if (hex.startsWith("#")) hex = hex.slice(1);
-        if (/^[0-9a-f]{3}$/i.test(hex)) {
-          return `#${hex.split("").map((c) => c + c).join("")}`.toUpperCase();
-        }
-        if (/^[0-9a-f]{6}$/i.test(hex)) {
-          return `#${hex}`.toUpperCase();
-        }
-        return null;
-      };
-
       const gatherSettings = () => {
-        const { x, y } = parseOffset(el.wmOffset.value);
-        const normalized = normalizeColor(el.wmColor.value) || "#77B7FF";
-        return {
-          text: el.wmText.value.trim() || "MARKFORGE",
-          font_size: parseInt(el.wmSize.value, 10) || 56,
-          fill: normalized,
-          blend: el.wmBlend.value,
-          angle: parseFloat(el.wmAngle.value) || -30,
-          padding: parseInt(el.wmPadding.value, 10) || 0,
-          opacity: parseFloat(el.wmOpacity.value) || 0.18,
-          tile: isOn(el.toggleTile),
-          center: isOn(el.toggleCenter),
-          antialias: isOn(el.toggleAa),
-          offset_x: x,
-          offset_y: y,
-          font_id: state.fontId,
-          font_path: state.fontPath
-        };
+        try {
+          const settings = helpers.gatherSettings({
+            textValue: el.wmText.value,
+            fontSizeValue: el.wmSize.value,
+            fillValue: el.wmColor.value,
+            blendValue: el.wmBlend.value,
+            angleValue: el.wmAngle.value,
+            paddingValue: el.wmPadding.value,
+            opacityValue: el.wmOpacity.value,
+            tile: isOn(el.toggleTile),
+            center: isOn(el.toggleCenter),
+            antialias: isOn(el.toggleAa),
+            offsetValue: el.wmOffset.value,
+            fontId: state.fontId
+          });
+          el.wmColor.classList.remove("invalid");
+          return settings;
+        } catch (err) {
+          if (err?.message && err.message.includes("Invalid color")) {
+            el.wmColor.classList.add("invalid");
+          }
+          throw err;
+        }
       };
 
       const updateClearButtons = (hasFiles, hasSelection) => {
@@ -1149,20 +1129,13 @@
         }
 
         files.forEach((file) => {
-          const row = document.createElement("div");
-          row.className = "file";
-          if (file.id === state.selectedId) row.classList.add("selected");
-          row.innerHTML = `
-            <div class="left">
-              <div class="badge" aria-hidden="true"></div>
-              <div class="meta">
-                <p class="name">${file.name}</p>
-                <p class="details">${file.width}×${file.height} · ${formatBytes(file.size)}</p>
-              </div>
-            </div>
-            <span class="chip">${file.id === state.selectedId ? "Selected" : "Queued"}</span>
-          `;
-          row.addEventListener("click", () => selectFile(file.id));
+          const row = helpers.createQueueRow(
+            document,
+            file,
+            state.selectedId,
+            formatBytes,
+            () => selectFile(file.id)
+          );
           el.queueList.appendChild(row);
         });
 
@@ -1268,7 +1241,6 @@
             apply_all: true,
             naming: el.outNaming.value,
             format: el.outFormat.value,
-            keep_originals: true,
             output_dir: el.outDir.value.trim(),
             settings: gatherSettings()
           }
@@ -1338,30 +1310,9 @@
       };
 
       const chooseFont = (value, label, cssFamily) => {
-        if (value === "custom") {
-          setFontMenuOpen(false);
-          pickFont().catch((err) => setStatus(`Error: ${err.message}`));
-          return;
-        }
-        state.fontId = null;
-        state.fontPath = value === "default" ? null : value;
+        state.fontId = value === "default" ? null : value;
         applyFontSelection(value, label, cssFamily);
         setFontMenuOpen(false);
-        if (state.livePreview) {
-          schedulePreview();
-        }
-      };
-
-      const pickFont = async () => {
-        const data = await api("/api/pick-font");
-        state.fontId = data.font_id;
-        state.fontPath = null;
-        const label = `Custom: ${data.name}`;
-        const customOption = el.fontMenu.querySelector('[data-value="custom"]');
-        if (customOption) {
-          customOption.textContent = label;
-        }
-        applyFontSelection("custom", label, null);
         if (state.livePreview) {
           schedulePreview();
         }
@@ -1372,15 +1323,12 @@
           const data = await api("/api/fonts");
           const fonts = data.fonts || [];
           const defaultFont = data.default_font || null;
-          const defaultValue = defaultFont?.path || "default";
+          const defaultValue = defaultFont?.id || "default";
           const defaultLabel = defaultFont?.name
             ? `System default (${defaultFont.name})`
             : "System default";
           const defaultCss = defaultFont?.css_family || null;
           const currentValue = fontState.selectedValue || defaultValue;
-          const currentLabel = fontState.selectedLabel || defaultLabel;
-          const currentCss = fontState.selectedCss || null;
-          const customLabel = currentValue === "custom" ? currentLabel : "Custom…";
           let styleEl = document.getElementById("font-face-style");
           if (!styleEl) {
             styleEl = document.createElement("style");
@@ -1425,11 +1373,10 @@
           makeOption(defaultValue, defaultLabel, defaultCss);
 
           fonts.forEach((font) => {
-            if (!font?.path || !font?.name) return;
-            makeOption(font.path, font.name, font.css_family);
+            if (!font?.id || !font?.name) return;
+            if (font.id === defaultFont?.id) return;
+            makeOption(font.id, font.name, font.css_family);
           });
-
-          makeOption("custom", customLabel, null, true);
 
           const options = [...el.fontMenu.querySelectorAll(".font-option")];
           const resolvedValue = currentValue === "default" ? defaultValue : currentValue;
@@ -1437,12 +1384,9 @@
             options.find((opt) => opt.dataset.value === resolvedValue) ||
             options.find((opt) => opt.dataset.value === defaultValue);
           if (active) {
-            const cssFamily = active.dataset.cssFamily || currentCss;
+            const cssFamily = active.dataset.cssFamily || null;
             applyFontSelection(active.dataset.value, active.textContent, cssFamily);
-            if (active.dataset.value !== "custom") {
-              state.fontId = null;
-              state.fontPath = active.dataset.value === "default" ? null : active.dataset.value;
-            }
+            state.fontId = active.dataset.value === "default" ? null : active.dataset.value;
           }
         } catch (err) {
           setStatus(`Error: ${err.message}`);
@@ -1532,7 +1476,7 @@
       [el.wmText, el.wmSize, el.wmBlend, el.wmAngle, el.wmPadding, el.wmOffset].forEach(bindInput);
 
       const syncColorInputs = (value) => {
-        const normalized = normalizeColor(value);
+        const normalized = helpers.normalizeColor(value);
         if (normalized) {
           el.wmColor.value = normalized;
           el.wmColor.classList.remove("invalid");
@@ -1544,7 +1488,7 @@
       };
 
       el.wmColor.addEventListener("input", () => {
-        const normalized = normalizeColor(el.wmColor.value);
+        const normalized = helpers.normalizeColor(el.wmColor.value);
         if (normalized) {
           el.wmColor.classList.remove("invalid");
           el.wmColorPicker.value = normalized;
@@ -1554,7 +1498,7 @@
         }
       });
       el.wmColor.addEventListener("blur", () => {
-        const normalized = normalizeColor(el.wmColor.value);
+        const normalized = helpers.normalizeColor(el.wmColor.value);
         if (normalized) {
           syncColorInputs(normalized);
         }

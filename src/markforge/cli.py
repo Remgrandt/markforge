@@ -4,7 +4,7 @@ from pathlib import Path
 
 import typer
 
-from .core import WatermarkSpec, watermark_file
+from .core import BLEND_MODES, MarkforgeError, WatermarkSpec, validate_blend_mode, watermark_file
 
 app = typer.Typer(
     add_completion=False,
@@ -54,7 +54,11 @@ TILE_OPTION = typer.Option(True, "--tile/--no-tile", help="Tile the watermark ac
 PADDING_OPTION = typer.Option(100, "--padding", min=0, max=10000, help="Padding between tiles (px).")
 CENTER_OPTION = typer.Option(False, "--center", help="Center a single watermark (use with --no-tile).")
 OFFSET_OPTION = typer.Option("0,0", "--offset", help="Offset in pixels as 'x,y'.")
-BLEND_OPTION = typer.Option("normal", "--blend", help="Blend mode: normal, multiply, overlay, soft_light.")
+BLEND_OPTION = typer.Option(
+    "normal",
+    "--blend",
+    help=f"Blend mode: {', '.join(BLEND_MODES)}.",
+)
 ANTIALIAS_OPTION = typer.Option(True, "--antialias/--no-antialias", help="Smooth rotated text.")
 GUI_HOST_OPTION = typer.Option("127.0.0.1", help="Bind host for the GUI server.")
 GUI_PORT_OPTION = typer.Option(0, help="Bind port (0 picks a free port).")
@@ -89,6 +93,10 @@ def watermark_cmd(
         offset_y = int(float(offset_parts[1]))
     except ValueError as exc:
         raise typer.BadParameter("Offset must be numeric like '12,-8'.") from exc
+    try:
+        blend_mode = validate_blend_mode(blend)
+    except MarkforgeError as exc:
+        raise typer.BadParameter(str(exc)) from exc
 
     spec = WatermarkSpec(
         text=text,
@@ -103,7 +111,7 @@ def watermark_cmd(
         center=center,
         offset_x=offset_x,
         offset_y=offset_y,
-        blend_mode=blend,
+        blend_mode=blend_mode,
         antialias=antialias,
     )
     watermark_file(input_path, output_path, spec)

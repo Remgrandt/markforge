@@ -36,6 +36,7 @@ markforge = "markforge.cli:app"
 
 [project.optional-dependencies]
 dev = [
+  "pytest-cov>=6.0.0",
   "pytest>=8.0.0",
   "ruff>=0.6.0",
 ]
@@ -58,3 +59,11 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["src/markforge"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false

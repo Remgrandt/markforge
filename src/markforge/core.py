@@ -6,6 +6,8 @@ from typing import Literal
 
 from PIL import Image, ImageChops, ImageColor, ImageDraw, ImageFont
 
+BLEND_MODES = ("normal", "multiply", "overlay", "soft_light")
+
 
 @dataclass(frozen=True)
 class WatermarkSpec:
@@ -44,6 +46,14 @@ def _load_font(font_path: str | None, font_size: int) -> ImageFont.FreeTypeFont 
         return ImageFont.load_default()
 
 
+def validate_blend_mode(blend_mode: str) -> str:
+    normalized = str(blend_mode).strip().lower()
+    if normalized not in BLEND_MODES:
+        allowed = ", ".join(BLEND_MODES)
+        raise MarkforgeError(f"Unsupported blend mode '{blend_mode}'. Expected one of: {allowed}.")
+    return normalized
+
+
 def apply_text_watermark(
     img: Image.Image,
     spec: WatermarkSpec,
@@ -52,6 +62,7 @@ def apply_text_watermark(
         raise MarkforgeError("Text watermark cannot be empty.")
 
     opacity = _clamp01(spec.opacity)
+    blend_mode = validate_blend_mode(spec.blend_mode)
 
     base = img.convert("RGBA")
     w, h = base.size
@@ -120,19 +131,17 @@ def apply_text_watermark(
         else:
             overlay.alpha_composite(rotated, dest=(0 + offset_x, 0 + offset_y))
 
-    if spec.blend_mode == "normal":
+    if blend_mode == "normal":
         return Image.alpha_composite(base, overlay)
 
     base_rgb = base.convert("RGB")
     overlay_rgb = overlay.convert("RGB")
-    if spec.blend_mode == "multiply":
+    if blend_mode == "multiply":
         blended = ImageChops.multiply(base_rgb, overlay_rgb)
-    elif spec.blend_mode == "overlay":
+    elif blend_mode == "overlay":
         blended = ImageChops.overlay(base_rgb, overlay_rgb)
-    elif spec.blend_mode == "soft_light":
-        blended = ImageChops.soft_light(base_rgb, overlay_rgb)
     else:
-        blended = base_rgb
+        blended = ImageChops.soft_light(base_rgb, overlay_rgb)
 
     mask = overlay.split()[-1]
     mixed = Image.composite(blended, base_rgb, mask)

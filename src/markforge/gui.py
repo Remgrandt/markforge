@@ -65,7 +65,6 @@ class GuiState:
     temp_dir: Path
     files: list[FileItem] = field(default_factory=list)
     selected_id: str | None = None
-    fonts: dict[str, Path] = field(default_factory=dict)
     system_fonts: list[dict[str, str]] = field(default_factory=list)
     system_font_map: dict[str, Path] = field(default_factory=dict)
     last_output_dir: Path | None = None
@@ -81,6 +80,17 @@ class _FormFile:
 
 def _static_dir() -> Path:
     return Path(__file__).resolve().parent / "static"
+
+
+def _resolve_static_asset(path: str) -> Path | None:
+    relative = Path(path.removeprefix("/static/"))
+    if relative.is_absolute() or ".." in relative.parts:
+        return None
+    candidate = (_static_dir() / relative).resolve()
+    static_root = _static_dir().resolve()
+    if candidate.parent != static_root and static_root not in candidate.parents:
+        return None
+    return candidate
 
 
 def _load_html(path: Path | None) -> bytes:
@@ -318,23 +328,6 @@ def _pick_files() -> list[Path]:
     return [Path(p) for p in paths]
 
 
-def _pick_font() -> Path | None:
-    try:
-        import tkinter as tk
-        from tkinter import filedialog
-    except Exception:
-        return None
-    root = tk.Tk()
-    root.withdraw()
-    root.wm_attributes("-topmost", 1)
-    path = filedialog.askopenfilename(
-        title="Select font",
-        filetypes=[("Fonts", "*.ttf *.otf"), ("All files", "*.*")],
-    )
-    root.destroy()
-    return Path(path) if path else None
-
-
 def _pick_directory() -> Path | None:
     try:
         import tkinter as tk
@@ -356,6 +349,16 @@ def _make_handler(state: GuiState):
             path = unquote(parsed.path)
             if path in {"/", "/index.html"}:
                 _send_bytes(self, state.html_bytes, "text/html; charset=utf-8")
+                return
+            if path.startswith("/static/"):
+                asset_path = _resolve_static_asset(path)
+                if asset_path and asset_path.exists() and asset_path.is_file():
+                    content_type = (
+                        mimetypes.guess_type(asset_path.name)[0] or "application/octet-stream"
+                    )
+                    _send_bytes(self, asset_path.read_bytes(), content_type)
+                    return
+                self.send_error(404, "Static asset not found")
                 return
             if path.startswith("/preview/"):
                 file_id = path.split("/")[-1]
@@ -411,14 +414,8 @@ def _make_handler(state: GuiState):
             if parsed.path == "/api/upload":
                 self._handle_upload()
                 return
-            if parsed.path == "/api/upload-font":
-                self._handle_font_upload()
-                return
             if parsed.path == "/api/pick-files":
                 self._handle_pick_files()
-                return
-            if parsed.path == "/api/pick-font":
-                self._handle_pick_font()
                 return
             if parsed.path == "/api/pick-output":
                 self._handle_pick_output()
@@ -484,20 +481,6 @@ def _make_handler(state: GuiState):
                 },
             )
 
-        def _handle_font_upload(self) -> None:
-            form = self._parse_form()
-            if "font" not in form:
-                _send_json(self, {"ok": False, "error": "No font uploaded"}, status=400)
-                return
-            item = form["font"]
-            if not item or not getattr(item, "filename", None):
-                _send_json(self, {"ok": False, "error": "No font uploaded"}, status=400)
-                return
-            dest, name = self._save_upload(item, state.temp_dir)
-            font_id = uuid.uuid4().hex
-            state.fonts[font_id] = dest
-            _send_json(self, {"ok": True, "font_id": font_id, "name": name})
-
         def _handle_pick_files(self) -> None:
             paths = _pick_files()
             added = 0
@@ -534,15 +517,6 @@ def _make_handler(state: GuiState):
                 },
             )
 
-        def _handle_pick_font(self) -> None:
-            path = _pick_font()
-            if not path:
-                _send_json(self, {"ok": False, "error": "No font selected"}, status=400)
-                return
-            font_id = uuid.uuid4().hex
-            state.fonts[font_id] = path
-            _send_json(self, {"ok": True, "font_id": font_id, "name": path.name})
-
         def _handle_pick_output(self) -> None:
             path = _pick_directory()
             if not path:
@@ -574,7 +548,6 @@ def _make_handler(state: GuiState):
             apply_all = bool(payload.get("apply_all"))
             naming = str(payload.get("naming") or "append_wm")
             fmt = str(payload.get("format") or "auto").lower()
-            keep_originals = bool(payload.get("keep_originals", True))
             output_dir = str(payload.get("output_dir") or "").strip()
             font_path = self._resolve_font_path(settings)
 
@@ -589,19 +562,21 @@ def _make_handler(state: GuiState):
             outputs: list[str] = []
             for item in targets:
                 in_path = item.path
+                source_name = Path(item.name).name
+                source_stem = Path(source_name).stem or in_path.stem
+                source_suffix = Path(source_name).suffix or in_path.suffix
                 if output_dir:
                     out_dir = Path(output_dir).expanduser()
                 else:
                     out_dir = Path.cwd() / "exports"
                 if not out_dir.is_absolute():
                     out_dir = Path.cwd() / out_dir
-                if keep_originals or not out_dir.exists():
-                    out_dir.mkdir(parents=True, exist_ok=True)
-                suffix = in_path.suffix
+                out_dir.mkdir(parents=True, exist_ok=True)
+                suffix = source_suffix
                 if fmt in {"png", "jpg", "jpeg", "webp"}:
                     suffix = f".{fmt.replace('jpeg', 'jpg')}"
-                stem = in_path.stem
-                if naming == "overwrite" and not keep_originals:
+                stem = source_stem
+                if naming == "overwrite":
                     out_name = f"{stem}{suffix}"
                 elif naming == "append_markforge":
                     out_name = f"{stem}_MARKFORGE{suffix}"
@@ -782,10 +757,9 @@ def _make_handler(state: GuiState):
 
         def _resolve_font_path(self, settings: dict[str, Any]) -> Path | None:
             font_id = settings.get("font_id")
-            if font_id and font_id in state.fonts:
-                return state.fonts[font_id]
-            font_path = settings.get("font_path")
-            return Path(font_path) if font_path else None
+            if not font_id:
+                return None
+            return state.system_font_map.get(str(font_id))
 
         def _handle_fonts(self) -> None:
             if not state.system_fonts:
@@ -818,20 +792,20 @@ def run(
     html: Path | None = RUN_HTML_OPTION,
 ) -> None:
     """Launch the GUI by serving the static UI and API endpoints."""
-    temp_dir = Path(tempfile.mkdtemp(prefix="markforge_gui_"))
-    state = GuiState(temp_dir=temp_dir, html_bytes=_load_html(html))
-    handler = _make_handler(state)
-    with ThreadingHTTPServer((host, port), handler) as server:
-        bind_host, bind_port = server.server_address[:2]
-        show_host = "127.0.0.1" if bind_host in {"0.0.0.0", "::"} else bind_host
-        url = f"http://{show_host}:{bind_port}/"
-        typer.echo(f"Markforge GUI running at {url}")
-        if open_browser:
-            webbrowser.open(url)
-        try:
-            server.serve_forever()
-        except KeyboardInterrupt:
-            pass
+    with tempfile.TemporaryDirectory(prefix="markforge_gui_") as temp_dir:
+        state = GuiState(temp_dir=Path(temp_dir), html_bytes=_load_html(html))
+        handler = _make_handler(state)
+        with ThreadingHTTPServer((host, port), handler) as server:
+            bind_host, bind_port = server.server_address[:2]
+            show_host = "127.0.0.1" if bind_host in {"0.0.0.0", "::"} else bind_host
+            url = f"http://{show_host}:{bind_port}/"
+            typer.echo(f"Markforge GUI running at {url}")
+            if open_browser:
+                webbrowser.open(url)
+            try:
+                server.serve_forever()
+            except KeyboardInterrupt:
+                pass
 
 
 def main() -> None:
