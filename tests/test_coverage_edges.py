@@ -242,7 +242,21 @@ def test_list_system_fonts_and_pick_default_font_cover_platform_branches(
     monkeypatch.setattr(gui.sys, "platform", "darwin")
     assert gui._list_system_fonts() == []
 
+    linux_font_roots = {
+        Path("/usr/share/fonts"),
+        Path("/usr/local/share/fonts"),
+        home / ".local/share/fonts",
+        home / ".fonts",
+    }
+    original_exists = Path.exists
+
+    def fake_exists(self: Path) -> bool:
+        if self in linux_font_roots:
+            return False
+        return original_exists(self)
+
     monkeypatch.setattr(gui.sys, "platform", "linux")
+    monkeypatch.setattr(Path, "exists", fake_exists)
     assert gui._list_system_fonts() == []
 
     assert gui._pick_default_font([]) is None

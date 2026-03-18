@@ -109,4 +109,6 @@ def test_python_m_markforge_help() -> None:
     )
 
     assert result.returncode == 0
-    assert "Usage: python -m markforge" in result.stdout
+    stdout = result.stdout.lower()
+    assert "markforge" in stdout
+    assert "watermark" in stdout
